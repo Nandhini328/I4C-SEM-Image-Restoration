@@ -1,9 +1,0 @@
-{
-  "evaluation_split": "held-out validation",
-  "num_images": 640,
-  "task": "2x super-resolution",
-  "psnr_db": 33.1968,
-  "ssim": 0.8888,
-  "lpips": 0.1301,
-  "note": "Controlled paired LR/GT super-resolution validation. These metrics should not be described as official noisy-test-set scores unless the corresponding degraded-input evaluation protocol is used."
-}
