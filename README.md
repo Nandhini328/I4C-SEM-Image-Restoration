@@ -1,0 +1,351 @@
+# I4C SEM Image Restoration
+
+AI-based restoration and 2× super-resolution of degraded grayscale SEM images for semiconductor inspection.
+
+## 1. Problem Statement
+
+**AI-Based Restoration of Degraded Images**
+
+The objective is to restore degraded semiconductor inspection imagery by suppressing image degradation and recovering fine structural details required for reliable visual analysis.
+
+The submitted pipeline focuses on grayscale SEM-image super-resolution from **128×128 to 256×256**.
+
+---
+
+## 2. Proposed Approach
+
+The submitted model is a lightweight single-channel residual super-resolution network.
+
+### Model pipeline
+
+```text
+128×128 Grayscale LR Input
+            │
+            ▼
+      Feature Extraction
+            │
+            ▼
+ Residual Channel-Attention Blocks
+            │
+            ▼
+   Feature Refinement
+            │
+            ▼
+      PixelShuffle ×2
+            │
+            ▼
+      Residual Reconstruction
+            │
+            ▼
+256×256 Restored SEM Image
+```
+
+### Model configuration
+
+- Input: 1-channel grayscale image
+- Output: 1-channel grayscale image
+- Upscaling factor: 2×
+- Feature channels: 64
+- Residual attention blocks: 12
+- Upsampling: PixelShuffle ×2
+- Framework: PyTorch
+
+The architecture is implemented in:
+
+```text
+models/sem_sr.py
+```
+
+---
+
+## 3. Repository Structure
+
+```text
+I4C-SEM-Image-Restoration/
+│
+├── README.md
+├── inference.py
+├── requirements.txt
+├── train.ipynb
+│
+├── models/
+│   └── sem_sr.py
+│
+├── weights/
+│   └── I4C_SEM_SR_33dB.pth
+│
+├── examples/
+│   └── 33db_results_figure.png
+│
+├── results/
+│   └── metrics.json
+│
+└── outputs/
+    └── Official test-output download information
+```
+
+---
+
+## 4. Installation
+
+Python 3.10+ is recommended.
+
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it.
+
+### Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+A CUDA-capable NVIDIA GPU is recommended for faster inference.
+
+---
+
+## 5. Model Weights
+
+The trained checkpoint is:
+
+```text
+weights/I4C_SEM_SR_33dB.pth
+```
+
+The checkpoint is approximately **4.29 MB**.
+
+The inference script automatically uses this path by default.
+
+A trained model checkpoint should be kept together with the exact architecture in:
+
+```text
+models/sem_sr.py
+```
+
+---
+
+## 6. Inference
+
+The standalone evaluator-facing script is:
+
+```text
+inference.py
+```
+
+It accepts an input directory and an output directory and does not require manual source-code editing.
+
+### Command
+
+```bash
+python inference.py \
+    --input_dir ./test_images \
+    --output_dir ./test_outputs
+```
+
+To specify the checkpoint explicitly:
+
+```bash
+python inference.py \
+    --input_dir ./test_images \
+    --output_dir ./test_outputs \
+    --weights ./weights/I4C_SEM_SR_33dB.pth
+```
+
+### Supported inputs
+
+The script supports:
+
+- `.npy`
+- `.png`
+- `.jpg`
+- `.jpeg`
+- `.tif`
+- `.tiff`
+
+For `.npy` inputs, the restored output is written as `.npy` with the same filename.
+
+For image inputs, the restored output is written as a grayscale PNG.
+
+### Example
+
+```text
+Input:
+test_images/
+└── 000000.npy
+
+Command:
+python inference.py --input_dir ./test_images --output_dir ./test_outputs
+
+Output:
+test_outputs/
+└── 000000.npy
+```
+
+---
+
+## 7. Validation Results
+
+The submitted SR model was evaluated on a **640-image held-out paired LR/GT validation split** using the controlled 2× super-resolution protocol.
+
+| Metric | Result |
+|---|---:|
+| **PSNR ↑** | **33.1968 dB** |
+| **SSIM ↑** | **0.8888** |
+| **LPIPS ↓** | **0.1301** |
+| Validation images | **640** |
+
+### Metric interpretation
+
+- **PSNR:** higher is better
+- **SSIM:** higher is better
+- **LPIPS:** lower is better
+
+The detailed metric values are also stored in:
+
+```text
+results/metrics.json
+```
+
+### Important evaluation note
+
+The reported **33.1968 dB / 0.8888 SSIM / 0.1301 LPIPS** values correspond to the **held-out paired LR/GT super-resolution validation protocol** used during development.
+
+They should **not** be interpreted as official hidden-test metrics for degraded images unless the same evaluation protocol and ground truth are provided.
+
+---
+
+## 8. Visual Results
+
+Representative validation comparisons are provided in:
+
+```text
+examples/33db_results_figure.png
+```
+
+The visual comparison follows:
+
+```text
+LR Input → Restored Output → Ground Truth
+```
+
+These examples are intended to provide qualitative evidence of structure recovery and detail reconstruction.
+
+---
+
+## 9. Official Test Outputs
+
+The final model was applied to the **400 official test images** supplied for the challenge.
+
+The generated restored outputs are available as a ZIP archive:
+
+**[Download the 400 restored test outputs](https://drive.google.com/file/d/1jodBptcsM033vEshxwnRO93JCCA88ojR/view?usp=drive_link)**
+
+Before final submission, verify that the Google Drive file has:
+
+**General access → Anyone with the link → Viewer**
+
+The archive contains the restored outputs generated by the submitted model.
+
+---
+
+## 10. Training
+
+The development and training workflow is provided in:
+
+```text
+train.ipynb
+```
+
+The training workflow includes:
+
+1. Dataset preparation
+2. Paired LR/GT loading
+3. Model construction
+4. Training
+5. Validation
+6. PSNR / SSIM evaluation
+7. LPIPS evaluation
+8. Model checkpoint saving
+
+The notebook was developed and executed using a GPU-enabled Kaggle environment.
+
+---
+
+## 11. Reproducibility
+
+To reproduce inference:
+
+```bash
+pip install -r requirements.txt
+
+python inference.py \
+    --input_dir ./test_images \
+    --output_dir ./test_outputs \
+    --weights ./weights/I4C_SEM_SR_33dB.pth
+```
+
+The evaluator does not need Kaggle-specific paths.
+
+The architecture definition, model checkpoint, dependencies, inference script, training notebook, metrics, and representative results are included or linked from this repository.
+
+---
+
+## 12. Hardware / Software
+
+### Software
+
+- Python
+- PyTorch
+- NumPy
+- scikit-image
+- LPIPS
+- Matplotlib
+- Pillow
+
+### Training environment
+
+- Kaggle Notebook
+- NVIDIA Tesla T4 GPU
+
+---
+
+## 13. References
+
+The implementation uses established concepts from image super-resolution and residual/channel-attention based restoration.
+
+Relevant references include:
+
+1. Zhang et al., **“Image Super-Resolution Using Very Deep Residual Channel Attention Networks,”** ECCV 2018.
+2. Paszke et al., **“PyTorch: An Imperative Style, High-Performance Deep Learning Library.”**
+3. The challenge-provided semiconductor image restoration dataset and evaluation requirements.
+
+---
+
+## 14. Submission Information
+
+This repository is prepared for the I4C hackathon submission and contains:
+
+- `README.md` — setup and usage documentation
+- `inference.py` — standalone inference/evaluation entry point
+- `train.ipynb` — training workflow
+- `models/sem_sr.py` — model architecture
+- `weights/I4C_SEM_SR_33dB.pth` — trained model checkpoint
+- `results/metrics.json` — validation metrics
+- `examples/33db_results_figure.png` — representative visual results
+- Google Drive link — official 400-image restored outputs
